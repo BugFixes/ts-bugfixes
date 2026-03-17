@@ -1,6 +1,6 @@
 {
   "name": "bugfixes",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "TypeScript logging, error tracking, and HTTP middleware library for Bugfixes",
   "type": "module",
   "main": "dist/index.js",

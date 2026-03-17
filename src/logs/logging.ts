@@ -93,23 +93,33 @@ export class BugFixes {
   /**
    * Core logging method.
    */
-  logAt(level: string, message: string): string | Error {
+  logAt(
+    level: string,
+    message: string,
+    stackOverride?: string,
+  ): string | Error {
     this.level = level;
     this.message = message;
     this.timestamp = new Date().toISOString();
+    this.stack = "";
 
     // Capture stack for error/debug/warn levels
     if ([ERROR, FATAL, CRASH, PANIC, DEBUG, WARN].includes(level)) {
-      this.stack = captureStack(3);
+      this.stack = stackOverride || captureStack(3);
     }
 
-    // Find the caller
-    const caller = findCaller(
-      ["ts-bugfixes/src/logs/"],
-      this.skipDepthOverride,
-    );
-    this.file = caller.file;
-    this.line = caller.line;
+    const topFrame = stackOverride ? parseStack(stackOverride)[0] : undefined;
+    if (topFrame) {
+      this.file = topFrame.file;
+      this.line = topFrame.line;
+    } else {
+      const caller = findCaller(
+        ["ts-bugfixes/src/logs/"],
+        this.skipDepthOverride,
+      );
+      this.file = caller.file;
+      this.line = caller.line;
+    }
 
     return this.doReporting();
   }
@@ -125,7 +135,7 @@ export class BugFixes {
       const currentLevel = convertLevelFromString(this.level);
       if (currentLevel < configuredLevel) {
         return this.level === ERROR
-          ? new Error(this.message)
+          ? createLoggedError(this.message, this.stack)
           : this.formatOutput();
       }
     }
@@ -149,7 +159,7 @@ export class BugFixes {
     }
 
     if (this.level === ERROR) {
-      return new Error(this.message);
+      return createLoggedError(this.message, this.stack);
     }
 
     return this.formatOutput();
@@ -231,4 +241,24 @@ function quoteLogFmt(value: string): string {
     return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n")}"`;
   }
   return value;
+}
+
+function createLoggedError(message: string, stack: string): Error {
+  const err = new Error(message);
+  if (stack) {
+    err.stack = rewriteStackMessage(stack, message);
+  }
+  return err;
+}
+
+function rewriteStackMessage(stack: string, message: string): string {
+  const lines = stack.split("\n");
+  if (lines.length === 0) {
+    return `Error: ${message}`;
+  }
+
+  const match = lines[0].match(/^([^:]+):/);
+  const errorName = match?.[1] || "Error";
+  lines[0] = `${errorName}: ${message}`;
+  return lines.join("\n");
 }
