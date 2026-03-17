@@ -21,22 +21,30 @@ export type { BugFixesData } from "./logging.js";
 
 export function error(...inputs: unknown[]): Error {
   const b = new BugFixes();
-  return b.logAt(ERROR, formatInputs(inputs)) as Error;
+  return b.logAt(
+    ERROR,
+    formatErrorInputs(inputs),
+    findFirstErrorStack(inputs),
+  ) as Error;
 }
 
 export function errorf(format: string, ...inputs: unknown[]): Error {
   const b = new BugFixes();
-  return b.logAt(ERROR, sprintf(format, inputs)) as Error;
+  return b.logAt(
+    ERROR,
+    sprintf(format, inputs),
+    findFirstErrorStack(inputs),
+  ) as Error;
 }
 
 export function warn(...inputs: unknown[]): string {
   const b = new BugFixes();
-  return b.logAt(WARN, formatInputs(inputs)) as string;
+  return b.logAt(WARN, formatInputs(inputs), findFirstErrorStack(inputs)) as string;
 }
 
 export function warnf(format: string, ...inputs: unknown[]): string {
   const b = new BugFixes();
-  return b.logAt(WARN, sprintf(format, inputs)) as string;
+  return b.logAt(WARN, sprintf(format, inputs), findFirstErrorStack(inputs)) as string;
 }
 
 export function info(...inputs: unknown[]): string {
@@ -51,12 +59,12 @@ export function infof(format: string, ...inputs: unknown[]): string {
 
 export function debug(...inputs: unknown[]): string {
   const b = new BugFixes();
-  return b.logAt(DEBUG, formatInputs(inputs)) as string;
+  return b.logAt(DEBUG, formatInputs(inputs), findFirstErrorStack(inputs)) as string;
 }
 
 export function debugf(format: string, ...inputs: unknown[]): string {
   const b = new BugFixes();
-  return b.logAt(DEBUG, sprintf(format, inputs)) as string;
+  return b.logAt(DEBUG, sprintf(format, inputs), findFirstErrorStack(inputs)) as string;
 }
 
 export function log(...inputs: unknown[]): string {
@@ -71,13 +79,13 @@ export function logf(format: string, ...inputs: unknown[]): string {
 
 export function fatal(...inputs: unknown[]): never {
   const b = new BugFixes();
-  b.logAt(FATAL, formatInputs(inputs));
+  b.logAt(FATAL, formatInputs(inputs), findFirstErrorStack(inputs));
   process.exit(1);
 }
 
 export function fatalf(format: string, ...inputs: unknown[]): never {
   const b = new BugFixes();
-  b.logAt(FATAL, sprintf(format, inputs));
+  b.logAt(FATAL, sprintf(format, inputs), findFirstErrorStack(inputs));
   process.exit(1);
 }
 
@@ -92,6 +100,16 @@ export function local(skipDepthOverride: number = 0): BugFixes {
 
 function formatInputs(inputs: unknown[]): string {
   return inputs.map((i) => String(i)).join(" ");
+}
+
+function formatErrorInputs(inputs: unknown[]): string {
+  return inputs
+    .map((input) => (input instanceof Error ? input.message : String(input)))
+    .join(" ");
+}
+
+function findFirstErrorStack(inputs: unknown[]): string | undefined {
+  return inputs.find((input): input is Error => input instanceof Error)?.stack;
 }
 
 /**
