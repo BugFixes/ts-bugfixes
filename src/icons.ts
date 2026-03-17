@@ -1,8 +1,11 @@
 /**
- * Unicode icon support — port of old-npm outputs/console.js icon behavior.
+ * Unicode icon support.
  *
- * Icons are prepended to console output unless iconSkip is enabled.
+ * Icons are disabled by default and can be enabled via setIconSkip(false)
+ * or BUGFIXES_ICON_SKIP=false.
  */
+
+import { getEnv } from "./core/platform.js";
 
 export const ICON_LOG = "\u2111"; // ℑ
 export const ICON_INFO = "\u203c"; // ‼
@@ -12,7 +15,7 @@ export interface IconOptions {
   iconSkip: boolean;
 }
 
-let globalIconSkip = false;
+let globalIconSkip = true;
 
 /**
  * Set the global icon skip flag.
@@ -23,7 +26,8 @@ export function setIconSkip(skip: boolean): void {
 }
 
 export function getIconSkip(): boolean {
-  if (process.env.BUGFIXES_ICON_SKIP === "true" || process.env.BUGFIXES_ICON_SKIP === "1") {
+  const envVal = getEnv("BUGFIXES_ICON_SKIP");
+  if (envVal === "true" || envVal === "1") {
     return true;
   }
   return globalIconSkip;

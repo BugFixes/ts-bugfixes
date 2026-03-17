@@ -11,12 +11,13 @@ import {
 
 describe("Icons (old-npm parity)", () => {
   beforeEach(() => {
+    // Icons default to OFF; enable them for tests that check icon output
     setIconSkip(false);
     delete process.env.BUGFIXES_ICON_SKIP;
   });
 
   afterEach(() => {
-    setIconSkip(false);
+    setIconSkip(true); // restore default (off)
     delete process.env.BUGFIXES_ICON_SKIP;
   });
 
@@ -59,5 +60,11 @@ describe("Icons (old-npm parity)", () => {
   it("should skip icons via BUGFIXES_ICON_SKIP=1 env var", () => {
     process.env.BUGFIXES_ICON_SKIP = "1";
     expect(getIconSkip()).toBe(true);
+  });
+
+  it("should default to icons OFF", () => {
+    setIconSkip(true); // restore the real default
+    expect(getIconSkip()).toBe(true);
+    expect(getIcon("log")).toBe("");
   });
 });
