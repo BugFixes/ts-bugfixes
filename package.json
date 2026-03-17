@@ -1,18 +1,19 @@
 {
   "name": "bugfixes",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "TypeScript logging, error tracking, and HTTP middleware library for Bugfixes",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "repository": "git@github.com:BugFixes/ts-bugfixes.git"
+  "repository": "git@github.com:BugFixes/ts-bugfixes.git",
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "bun --bun vitest run",
     "test:watch": "bun --bun vitest",
     "lint": "eslint src/",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "tests": "bun run test && tsc --noEmit"
   },
   "keywords": [
     "bugfixes",
@@ -22,14 +23,12 @@
   ],
   "license": "MIT",
   "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.5.0",
-    "@types/uuid": "^11.0.0",
     "typescript": "^5.7.0",
     "vitest": "^4.1.0"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=24.0.0"
   },
   "files": [
     "dist"
@@ -48,8 +47,5 @@
       "default": "./dist/middleware/index.js"
     }
   },
-  "dependencies": {
-    "jsonwebtoken": "^9.0.3",
-    "uuid": "^13.0.0"
-  }
+  "dependencies": {}
 }

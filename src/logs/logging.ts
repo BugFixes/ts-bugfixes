@@ -23,6 +23,7 @@ import {
   findCaller,
 } from "./pretty.js";
 import { withIcon } from "../icons.js";
+import { writeOutput } from "../core/platform.js";
 
 export const LOG = "log";
 export const DEBUG = "debug";
@@ -150,12 +151,11 @@ export class BugFixes {
     const isLocal = this.localOnly || cfg.localOnly;
     if (!isLocal && cfg.agentKey && cfg.agentSecret) {
       this.sendToApi(cfg).catch((err) => {
-        process.stderr.write(
+        writeOutput(
+          "stderr",
           `bugfixes: failed to send log: ${err.message}\n`,
         );
       });
-    } else if (!isLocal && (!cfg.agentKey || !cfg.agentSecret)) {
-      // Silently keep local if no credentials
     }
 
     if (this.level === ERROR) {
@@ -196,16 +196,16 @@ export class BugFixes {
 
     const stream =
       this.level === ERROR || this.level === FATAL || this.level === CRASH
-        ? process.stderr
-        : process.stdout;
+        ? "stderr"
+        : "stdout";
 
-    stream.write(msg + "\n");
+    writeOutput(stream, msg + "\n");
 
     // Print stack trace for error-level logs
     if (this.stack && [ERROR, FATAL, CRASH, PANIC].includes(this.level)) {
       const frames = parseStack(this.stack);
       const pretty = formatPrettyStack(frames);
-      stream.write(pretty + "\n");
+      writeOutput(stream, pretty + "\n");
     }
   }
 

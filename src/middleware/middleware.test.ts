@@ -5,6 +5,9 @@ import {
   newMiddleware,
   newDefaultMiddleware,
   defaultMiddleware,
+  createRecovererMiddleware,
+  recovererMiddleware,
+  asyncRecoverer,
 } from "./index.js";
 import { resetDefaultConfig, getDefaultConfig } from "../config.js";
 
@@ -130,5 +133,119 @@ describe("Middleware System", () => {
 
     const cors = system.cors();
     expect(cors).toBeInstanceOf(Function);
+  });
+});
+
+describe("recovererMiddleware", () => {
+  it("should catch sync errors and return 500", () => {
+    const req = createMockReq();
+    const res = createMockRes();
+
+    recovererMiddleware(req, res, () => {
+      throw new Error("sync boom");
+    });
+
+    expect(res.writeHead).toHaveBeenCalledWith(500, {
+      "Content-Type": "text/plain",
+    });
+    expect(res.end).toHaveBeenCalledWith("Internal Server Error");
+  });
+
+  it("should pass through when no error", () => {
+    const req = createMockReq();
+    const res = createMockRes();
+    let called = false;
+
+    recovererMiddleware(req, res, () => {
+      called = true;
+    });
+
+    expect(called).toBe(true);
+    expect(res.writeHead).not.toHaveBeenCalled();
+  });
+});
+
+describe("createRecovererMiddleware", () => {
+  it("should return a middleware function", () => {
+    const mw = createRecovererMiddleware("key", "secret");
+    expect(mw).toBeInstanceOf(Function);
+  });
+
+  it("should catch errors and return 500", () => {
+    const mw = createRecovererMiddleware();
+    const req = createMockReq();
+    const res = createMockRes();
+
+    mw(req, res, () => {
+      throw new Error("factory boom");
+    });
+
+    expect(res.writeHead).toHaveBeenCalledWith(500, {
+      "Content-Type": "text/plain",
+    });
+    expect(res.end).toHaveBeenCalledWith("Internal Server Error");
+  });
+
+  it("should pass through when no error", () => {
+    const mw = createRecovererMiddleware();
+    const req = createMockReq();
+    const res = createMockRes();
+    let called = false;
+
+    mw(req, res, () => {
+      called = true;
+    });
+
+    expect(called).toBe(true);
+    expect(res.writeHead).not.toHaveBeenCalled();
+  });
+
+  it("should not send 500 if headers already sent", () => {
+    const mw = createRecovererMiddleware();
+    const req = createMockReq();
+    const res = createMockRes();
+    (res as any).headersSent = true;
+
+    mw(req, res, () => {
+      throw new Error("late error");
+    });
+
+    expect(res.writeHead).not.toHaveBeenCalled();
+  });
+});
+
+describe("asyncRecoverer", () => {
+  it("should catch async errors and return 500", async () => {
+    const req = createMockReq();
+    const res = createMockRes();
+
+    const handler = asyncRecoverer(async () => {
+      throw new Error("async boom");
+    });
+
+    handler(req, res);
+    // Allow the promise rejection to be caught
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(res.writeHead).toHaveBeenCalledWith(500, {
+      "Content-Type": "text/plain",
+    });
+    expect(res.end).toHaveBeenCalledWith("Internal Server Error");
+  });
+
+  it("should pass through for successful async handlers", async () => {
+    const req = createMockReq();
+    const res = createMockRes();
+    let called = false;
+
+    const handler = asyncRecoverer(async () => {
+      called = true;
+    });
+
+    handler(req, res);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(called).toBe(true);
+    expect(res.writeHead).not.toHaveBeenCalled();
   });
 });
