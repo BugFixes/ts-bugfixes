@@ -8,8 +8,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "bun --bun vitest run",
+    "test:watch": "bun --bun vitest",
     "lint": "eslint src/",
     "clean": "rm -rf dist"
   },
