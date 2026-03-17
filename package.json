@@ -5,6 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "repository": "git@github.com:BugFixes/ts-bugfixes.git"
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
