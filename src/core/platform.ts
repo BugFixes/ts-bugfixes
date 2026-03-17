@@ -124,7 +124,11 @@ export async function signJWT(
 }
 
 function base64url(data: Uint8Array): string {
-  // Use btoa which is available in both Node 16+ and browsers
-  const base64 = btoa(String.fromCharCode(...data));
+  // Build binary string iteratively to avoid spread argument limit (~65K)
+  let binary = "";
+  for (let i = 0; i < data.length; i++) {
+    binary += String.fromCharCode(data[i]);
+  }
+  const base64 = btoa(binary);
   return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }

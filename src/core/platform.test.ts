@@ -155,4 +155,22 @@ describe("signJWT", () => {
     // Signatures (third part) should differ
     expect(a.split(".")[2]).not.toBe(b.split(".")[2]);
   });
+
+  it("should handle large payloads without RangeError", async () => {
+    // Create a payload large enough to exceed the ~65K spread argument limit
+    const largeStack = "at SomeFunction (/path/to/file.ts:1:1)\n".repeat(2000);
+    const payload = {
+      message: "test error",
+      stack: largeStack,
+      raw: largeStack,
+    };
+    const token = await signJWT(payload, "secret");
+    const parts = token.split(".");
+    expect(parts).toHaveLength(3);
+
+    // Verify payload is decodable
+    const decoded = decodeJWTPart(parts[1]);
+    expect(decoded.message).toBe("test error");
+    expect((decoded.stack as string).length).toBeGreaterThan(10000);
+  });
 });

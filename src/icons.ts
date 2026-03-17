@@ -30,6 +30,9 @@ export function getIconSkip(): boolean {
   if (envVal === "true" || envVal === "1") {
     return true;
   }
+  if (envVal === "false" || envVal === "0") {
+    return false;
+  }
   return globalIconSkip;
 }
 
