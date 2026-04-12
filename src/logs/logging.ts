@@ -18,10 +18,11 @@ import {
 } from "../internal/term.js";
 import {
   captureStack,
-  parseStack,
+  buildUsefulTrace,
   formatPrettyStack,
   findCaller,
 } from "./pretty.js";
+import type { UsefulTrace } from "./pretty.js";
 import { withIcon } from "../icons.js";
 import { writeOutput } from "../core/platform.js";
 
@@ -40,9 +41,13 @@ export interface BugFixesData {
   level: string;
   file: string;
   line: number;
+  column: number;
   logFmt: string;
   stack: string;
   message: string;
+  errorName: string;
+  fingerprint: string;
+  trace: UsefulTrace;
   error?: string;
   localOnly: boolean;
   agentId: string;
@@ -66,7 +71,16 @@ export class BugFixes {
   message: string = "";
   file: string = "";
   line: number = 0;
+  column: number = 0;
   stack: string = "";
+  trace: UsefulTrace = {
+    errorName: "Error",
+    fingerprint: "Error",
+    summary: "",
+    topFrame: null,
+    frames: [],
+    relevantFrames: [],
+  };
   localOnly: boolean = false;
   skipDepthOverride: number = 0;
   private config: Config | null = null;
@@ -109,17 +123,21 @@ export class BugFixes {
       this.stack = stackOverride || captureStack(3);
     }
 
-    const topFrame = stackOverride ? parseStack(stackOverride)[0] : undefined;
+    this.trace = buildUsefulTrace(this.stack);
+
+    const topFrame = this.trace.topFrame;
     if (topFrame) {
       this.file = topFrame.file;
       this.line = topFrame.line;
+      this.column = topFrame.column;
     } else {
       const caller = findCaller(
-        ["ts-bugfixes/src/logs/"],
+        ["/src/logs/logging.", "/src/logs/index."],
         this.skipDepthOverride,
       );
       this.file = caller.file;
       this.line = caller.line;
+      this.column = 0;
     }
 
     return this.doReporting();
@@ -174,6 +192,14 @@ export class BugFixes {
       `line=${this.line}`,
     ];
 
+    if (this.column > 0) {
+      parts.push(`column=${this.column}`);
+    }
+
+    if (this.trace.fingerprint) {
+      parts.push(`fingerprint=${quoteLogFmt(this.trace.fingerprint)}`);
+    }
+
     if (this.stack) {
       parts.push(`stack=${quoteLogFmt(this.stack)}`);
     }
@@ -203,8 +229,7 @@ export class BugFixes {
 
     // Print stack trace for error-level logs
     if (this.stack && [ERROR, FATAL, CRASH, PANIC].includes(this.level)) {
-      const frames = parseStack(this.stack);
-      const pretty = formatPrettyStack(frames);
+      const pretty = formatPrettyStack(this.trace.frames);
       writeOutput(stream, pretty + "\n");
     }
   }
@@ -215,9 +240,13 @@ export class BugFixes {
       level: this.level,
       file: this.file,
       line: this.line,
+      column: this.column,
       logFmt: this.toLogFmt(),
       stack: this.stack,
       message: this.message,
+      errorName: this.trace.errorName,
+      fingerprint: this.trace.fingerprint,
+      trace: this.trace,
       localOnly: this.localOnly,
       agentId: cfg.agentKey,
       secret: cfg.agentSecret,

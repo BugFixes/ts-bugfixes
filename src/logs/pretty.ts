@@ -25,6 +25,30 @@ export interface PrettyStackResult {
   panicLine: number;
 }
 
+export interface UsefulTrace {
+  errorName: string;
+  fingerprint: string;
+  summary: string;
+  topFrame: ParsedStackFrame | null;
+  frames: ParsedStackFrame[];
+  relevantFrames: ParsedStackFrame[];
+}
+
+const DEFAULT_TRACE_SKIP_PATTERNS = [
+  "/src/logs/logging.",
+  "/src/logs/index.",
+  "/src/logs/pretty.",
+  "/src/middleware/recoverer.",
+  "/src/middleware/bugfixes.",
+  "/src/middleware/index.",
+];
+const COMPILED_ARTIFACT_PATTERNS = [
+  "/.next/",
+  "/dist/",
+  "/build/",
+  "/node_modules/",
+];
+
 /**
  * Parse a V8 stack trace string into structured frames.
  */
@@ -43,6 +67,37 @@ export function parseStack(stack: string): ParsedStackFrame[] {
   }
 
   return frames;
+}
+
+export function buildUsefulTrace(
+  stack: string,
+  skipPatterns: string[] = DEFAULT_TRACE_SKIP_PATTERNS,
+): UsefulTrace {
+  const frames = parseStack(stack);
+  const nonInternalFrames = frames.filter((frame) => !isInternalFrame(frame, skipPatterns));
+  const relevantFrames = nonInternalFrames.filter((frame) => !isCompiledArtifactFrame(frame));
+  const topFrame = relevantFrames[0] || nonInternalFrames[0] || frames[0] || null;
+  const errorName = extractErrorName(stack);
+  const fingerprintFrames =
+    (relevantFrames.length > 0 ? relevantFrames : nonInternalFrames.length > 0 ? nonInternalFrames : frames)
+      .slice(0, 5);
+  const fingerprint =
+    `${errorName}:` +
+    fingerprintFrames
+      .map((frame) => `${frame.func}@${normalizeTracePath(frame.file)}:${frame.line}`)
+      .join("|");
+  const summary = fingerprintFrames
+    .map((frame) => `${frame.func} (${normalizeTracePath(frame.file)}:${frame.line})`)
+    .join(" <- ");
+
+  return {
+    errorName,
+    fingerprint: fingerprint === `${errorName}:` ? errorName : fingerprint,
+    summary,
+    topFrame,
+    frames,
+    relevantFrames,
+  };
 }
 
 /**
@@ -182,4 +237,35 @@ export function findCaller(
   }
 
   return { file: "unknown", line: 0 };
+}
+
+function extractErrorName(stack: string): string {
+  const firstLine = stack.split("\n")[0]?.trim() || "";
+  const match = firstLine.match(/^([^:]+)(?::|$)/);
+  return match?.[1] || "Error";
+}
+
+function isInternalFrame(
+  frame: ParsedStackFrame,
+  skipPatterns: string[],
+): boolean {
+  return (
+    frame.file.startsWith("node:") ||
+    frame.file.startsWith("internal/") ||
+    frame.file === "<anonymous>" ||
+    skipPatterns.some((pattern) => frame.file.includes(pattern))
+  );
+}
+
+function isCompiledArtifactFrame(frame: ParsedStackFrame): boolean {
+  return COMPILED_ARTIFACT_PATTERNS.some((pattern) => frame.file.includes(pattern));
+}
+
+function normalizeTracePath(file: string): string {
+  if (file.startsWith("node:") || file.startsWith("internal/")) {
+    return file;
+  }
+
+  const parts = file.split("/");
+  return parts.slice(-3).join("/");
 }

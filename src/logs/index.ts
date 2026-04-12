@@ -14,8 +14,9 @@ export {
   formatPrettyStack,
   captureStack,
   findCaller,
+  buildUsefulTrace,
 } from "./pretty.js";
-export type { ParsedStackFrame, PrettyStackResult } from "./pretty.js";
+export type { ParsedStackFrame, PrettyStackResult, UsefulTrace } from "./pretty.js";
 export type { BugFixesData } from "./logging.js";
 
 // --- Package-level convenience functions ---

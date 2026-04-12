@@ -1,8 +1,9 @@
 import type http from "node:http";
 import {
-  parseStack,
+  buildUsefulTrace,
   formatPrettyStack,
 } from "../logs/pretty.js";
+import type { UsefulTrace } from "../logs/pretty.js";
 import {
   type Config,
   getDefaultConfig,
@@ -15,9 +16,13 @@ import { writeOutput } from "../core/platform.js";
 export interface BugFixesSend {
   file: string;
   line: number;
+  column: number;
   raw: string;
   bug: string;
   message: string;
+  errorName: string;
+  fingerprint: string;
+  trace: UsefulTrace;
   requestId: string;
   timestamp: string;
 }
@@ -90,8 +95,8 @@ function handleError(
   const stack =
     err instanceof Error ? err.stack || "" : new Error(String(err)).stack || "";
 
-  const frames = parseStack(stack);
-  const pretty = formatPrettyStack(frames, message);
+  const trace = buildUsefulTrace(stack);
+  const pretty = formatPrettyStack(trace.frames, message);
 
   // Log to stderr
   writeOutput("stderr", pretty + "\n");
@@ -99,7 +104,7 @@ function handleError(
   // Attempt to send to Bugfixes API
   const cfg = getDefaultConfig();
   const reqId = getRequestId(req) || "-";
-  const topFrame = frames[0];
+  const topFrame = trace.topFrame;
 
   const key = agentKey || cfg.agentKey;
   const secret = agentSecret || cfg.agentSecret;
@@ -108,9 +113,13 @@ function handleError(
     const data: BugFixesSend = {
       file: topFrame?.file || "unknown",
       line: topFrame?.line || 0,
+      column: topFrame?.column || 0,
       raw: stack,
       bug: pretty,
       message,
+      errorName: trace.errorName,
+      fingerprint: trace.fingerprint,
+      trace,
       requestId: reqId,
       timestamp: new Date().toISOString(),
     };

@@ -196,6 +196,21 @@ describe("Logs", () => {
     expect(b.line).toBe(frame.line);
   });
 
+  it("should prefer app frames over compiled bundle frames", () => {
+    const stack = `TypeError: fetch failed
+    at fetchProjects (/Volumes/Dockcase/Projects/flags/dashboard/.next/dev/server/chunks/ssr/node_modules__pnpm_59a7dda5._.js:3430:12)
+    at loadDashboardHome (/Volumes/Dockcase/Projects/flags/dashboard/src/app/page.tsx:87:19)
+    at DashboardPage (/Volumes/Dockcase/Projects/flags/dashboard/src/app/page.tsx:120:5)`;
+    const b = new BugFixes();
+
+    b.logAt("error", "failed to build dashboard home fetch failed", stack);
+
+    expect(b.file).toBe("/Volumes/Dockcase/Projects/flags/dashboard/src/app/page.tsx");
+    expect(b.line).toBe(87);
+    expect(b.column).toBe(19);
+    expect(b.trace.fingerprint).toContain("src/app/page.tsx:87");
+  });
+
   it("should capture stack for debug level", () => {
     const b = new BugFixes();
     b.logAt("debug", "test debug");
