@@ -7,10 +7,8 @@ import type { Config } from "../config.js";
 import { setDefaultConfig } from "../config.js";
 import { loggerMiddleware } from "./logger.js";
 import { requestIdMiddleware, getRequestId } from "./requestid.js";
-import { recovererMiddleware, asyncRecoverer } from "./recoverer.js";
-import { lowerCaseHeadersMiddleware } from "./lcheaders.js";
+import { recovererMiddleware, asyncRecoverer, createRecovererMiddleware } from "./recoverer.js";
 import { createCorsMiddleware, type CorsOptions } from "./cors.js";
-import { createBugfixesMiddleware } from "./bugfixes.js";
 import { wrapResponse, WrapResponseWriter } from "./wrapwriter.js";
 
 export { loggerMiddleware } from "./logger.js";
@@ -19,12 +17,10 @@ export {
   getRequestId,
   REQUEST_ID_HEADER,
 } from "./requestid.js";
-export { recovererMiddleware, asyncRecoverer } from "./recoverer.js";
+export { recovererMiddleware, asyncRecoverer, createRecovererMiddleware } from "./recoverer.js";
 export type { BugFixesSend } from "./recoverer.js";
-export { lowerCaseHeadersMiddleware } from "./lcheaders.js";
 export { createCorsMiddleware } from "./cors.js";
 export type { CorsOptions } from "./cors.js";
-export { createBugfixesMiddleware } from "./bugfixes.js";
 export { wrapResponse, WrapResponseWriter } from "./wrapwriter.js";
 
 export type Middleware = (
@@ -40,7 +36,6 @@ export type Handler = (
 
 /**
  * System — composable middleware chain builder.
- * Mirrors the Go middleware.System struct.
  */
 export class System {
   private middlewares: Middleware[] = [];
@@ -143,13 +138,12 @@ export function newMiddleware(): System {
 
 /**
  * Create a middleware system with default middleware pre-configured:
- * RequestID, LowerCaseHeaders, Logger, Recoverer.
+ * RequestID, Logger, Recoverer.
  */
 export function newDefaultMiddleware(): System {
   const system = new System();
   system.addMiddleware(
     requestIdMiddleware,
-    lowerCaseHeadersMiddleware,
     loggerMiddleware,
     recovererMiddleware,
   );

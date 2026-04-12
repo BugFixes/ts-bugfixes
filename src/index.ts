@@ -70,9 +70,8 @@ export {
   REQUEST_ID_HEADER,
   recovererMiddleware,
   asyncRecoverer,
-  lowerCaseHeadersMiddleware,
+  createRecovererMiddleware,
   createCorsMiddleware,
-  createBugfixesMiddleware,
   wrapResponse,
   WrapResponseWriter,
 } from "./middleware/index.js";
@@ -96,17 +95,4 @@ export {
 } from "./icons.js";
 
 // Utils
-export { toOptional } from "./utils/pointers.js";
-
-// Functions (ported from old-npm)
-export {
-  checkIfDefined,
-  result,
-  errorResult,
-  defaultError,
-  createVerify,
-  lambdaResult,
-  lambdaError,
-} from "./utils/functions.js";
-
-export type { ResponseObject, LambdaResponse } from "./utils/functions.js";
+export { isDefined } from "./utils/functions.js";

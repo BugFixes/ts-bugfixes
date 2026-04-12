@@ -1,14 +1,13 @@
 import {
-  ColorReset,
   ColorBrightRed,
   ColorBrightGreen,
   ColorBrightCyan,
   ColorBrightYellow,
   ColorBrightMagenta,
-  ColorBrightWhite,
   isTTY,
   colorize,
 } from "../internal/term.js";
+import { writeOutput } from "../core/platform.js";
 
 export interface ParsedStackFrame {
   func: string;
@@ -175,13 +174,21 @@ export function formatPrettyStack(
  * Capture the current stack trace, skipping a given number of frames.
  */
 export function captureStack(skipFrames: number = 2): string {
-  const obj: { stack?: string } = {};
-  Error.captureStackTrace(obj, captureStack);
+  // Error.captureStackTrace is V8-specific but available in Node and Chrome
+  if (typeof Error.captureStackTrace === "function") {
+    const obj: { stack?: string } = {};
+    Error.captureStackTrace(obj, captureStack);
 
-  if (!obj.stack) return "";
+    if (!obj.stack) return "";
 
-  const lines = obj.stack.split("\n");
-  // Skip the "Error" header line and the requested number of frames
+    const lines = obj.stack.split("\n");
+    return ["Error", ...lines.slice(1 + skipFrames)].join("\n");
+  }
+
+  // Fallback for non-V8 environments (Firefox, Safari)
+  const err = new Error();
+  if (!err.stack) return "";
+  const lines = err.stack.split("\n");
   return ["Error", ...lines.slice(1 + skipFrames)].join("\n");
 }
 
@@ -202,7 +209,7 @@ export function printPrettyStack(error: unknown): void {
 
   const frames = parseStack(stack);
   const pretty = formatPrettyStack(frames, message);
-  process.stderr.write(pretty + "\n");
+  writeOutput("stderr", pretty + "\n");
 }
 
 /**

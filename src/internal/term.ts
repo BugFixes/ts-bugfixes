@@ -2,6 +2,8 @@
  * ANSI terminal color codes and TTY detection.
  */
 
+import { isTTY as platformIsTTY } from "../core/platform.js";
+
 export const ColorReset = "\x1b[0m";
 
 export const ColorRed = "\x1b[31m";
@@ -18,7 +20,7 @@ export const ColorBrightCyan = "\x1b[96m";
 export const ColorBrightWhite = "\x1b[97m";
 
 export function isTTY(): boolean {
-  return process.stdout.isTTY === true;
+  return platformIsTTY();
 }
 
 export function colorize(color: string, text: string): string {

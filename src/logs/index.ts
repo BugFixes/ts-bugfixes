@@ -6,6 +6,7 @@
  */
 
 import { BugFixes, ERROR, WARN, INFO, DEBUG, LOG, FATAL } from "./logging.js";
+import { exit } from "../core/platform.js";
 export { BugFixes, ERROR, WARN, INFO, DEBUG, LOG, FATAL } from "./logging.js";
 export {
   printPrettyStack,
@@ -81,13 +82,13 @@ export function logf(format: string, ...inputs: unknown[]): string {
 export function fatal(...inputs: unknown[]): never {
   const b = new BugFixes();
   b.logAt(FATAL, formatInputs(inputs), findFirstErrorStack(inputs));
-  process.exit(1);
+  return exit(1);
 }
 
 export function fatalf(format: string, ...inputs: unknown[]): never {
   const b = new BugFixes();
   b.logAt(FATAL, sprintf(format, inputs), findFirstErrorStack(inputs));
-  process.exit(1);
+  return exit(1);
 }
 
 /**
@@ -114,11 +115,11 @@ function findFirstErrorStack(inputs: unknown[]): string | undefined {
 }
 
 /**
- * Simple sprintf-style formatter supporting %s, %d, %v, %f, %j.
+ * Simple sprintf-style formatter supporting %s, %d, %f, %j.
  */
 function sprintf(format: string, args: unknown[]): string {
   let i = 0;
-  return format.replace(/%([sdvfj%])/g, (match, specifier) => {
+  return format.replace(/%([sdfj%])/g, (match, specifier) => {
     if (specifier === "%") return "%";
     if (i >= args.length) return match;
     const arg = args[i++];
@@ -131,7 +132,6 @@ function sprintf(format: string, args: unknown[]): string {
         return Number(arg).toString();
       case "j":
         return JSON.stringify(arg);
-      case "v":
       default:
         return String(arg);
     }

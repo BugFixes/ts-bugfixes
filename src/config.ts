@@ -1,6 +1,4 @@
-import http from "node:http";
-import https from "node:https";
-import jwt from "jsonwebtoken";
+import { getEnv, byteLength, signJWT } from "./core/platform.js";
 
 export interface Config {
   server: string;
@@ -27,15 +25,15 @@ let defaultConfig: Config = {
 };
 
 export function loadConfigFromEnv(): Config {
-  const localOnly = process.env.BUGFIXES_LOCAL_ONLY;
-  const iconSkip = process.env.BUGFIXES_ICON_SKIP;
+  const localOnly = getEnv("BUGFIXES_LOCAL_ONLY");
+  const iconSkip = getEnv("BUGFIXES_ICON_SKIP");
 
   return {
-    server: process.env.BUGFIXES_SERVER || DEFAULT_SERVER,
-    agentKey: process.env.BUGFIXES_AGENT_KEY || process.env.BUGFIXES_KEY || "",
-    agentSecret: process.env.BUGFIXES_AGENT_SECRET || process.env.BUGFIXES_SECRET || "",
-    agentId: process.env.BUGFIXES_AGENT_ID || process.env.BUGFIXES_ID || "",
-    logLevel: process.env.BUGFIXES_LOG_LEVEL || "",
+    server: getEnv("BUGFIXES_SERVER") || DEFAULT_SERVER,
+    agentKey: getEnv("BUGFIXES_AGENT_KEY") || getEnv("BUGFIXES_KEY") || "",
+    agentSecret: getEnv("BUGFIXES_AGENT_SECRET") || getEnv("BUGFIXES_SECRET") || "",
+    agentId: getEnv("BUGFIXES_AGENT_ID") || getEnv("BUGFIXES_ID") || "",
+    logLevel: getEnv("BUGFIXES_LOG_LEVEL") || "",
     localOnly: localOnly === "true" || localOnly === "1",
     iconSkip: iconSkip === "true" || iconSkip === "1",
     httpTimeout: 10_000,
@@ -86,26 +84,23 @@ export function bugEndpoint(cfg: Config): string {
 }
 
 /**
- * Sign a payload with JWT using the agent secret.
- * Matches the old-npm behavior where the message is JWT-signed before sending.
+ * Sign a payload with HMAC-SHA256 JWT using Web Crypto.
+ * Works in Node 18+, browsers, and Edge Runtime.
  */
-export function signPayload(payload: unknown, secret: string): string {
-  return jwt.sign(payload as object, secret);
+export async function signPayload(payload: unknown, secret: string): Promise<string> {
+  return signJWT(payload as object, secret);
 }
 
-export function makeRequest(
+export async function makeRequest(
   cfg: Config,
   url: string,
   body: string,
   logLevel?: number,
 ): Promise<void> {
-  const parsedUrl = new URL(url);
-  const transport = parsedUrl.protocol === "https:" ? https : http;
-
-  // JWT-sign the payload if we have a secret (matches old-npm behavior)
+  // JWT-sign the payload if we have a secret
   let finalBody: string;
   if (cfg.agentSecret) {
-    const signedMessage = signPayload(JSON.parse(body), cfg.agentSecret);
+    const signedMessage = await signPayload(JSON.parse(body), cfg.agentSecret);
     finalBody = JSON.stringify({
       message: signedMessage,
       ...(logLevel !== undefined ? { logLevel } : {}),
@@ -114,44 +109,37 @@ export function makeRequest(
     finalBody = body;
   }
 
-  return new Promise((resolve, reject) => {
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      "Content-Length": String(Buffer.byteLength(finalBody)),
-      "X-API-KEY": cfg.agentKey,
-      "X-API-SECRET": cfg.agentSecret,
-    };
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "Content-Length": String(byteLength(finalBody)),
+    "X-API-KEY": cfg.agentKey,
+    "X-API-SECRET": cfg.agentSecret,
+  };
 
-    // Include X-API-ID if agent ID is configured (matches old-npm)
-    if (cfg.agentId) {
-      headers["X-API-ID"] = cfg.agentId;
+  if (cfg.agentId) {
+    headers["X-API-ID"] = cfg.agentId;
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), cfg.httpTimeout);
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: finalBody,
+      signal: controller.signal,
+    });
+    // Drain response body
+    await response.text();
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error("request timeout");
     }
-
-    const req = transport.request(
-      parsedUrl,
-      {
-        method: "POST",
-        headers,
-        timeout: cfg.httpTimeout,
-      },
-      (res) => {
-        res.resume(); // drain response
-        resolve();
-      },
-    );
-
-    req.on("error", (err) => {
-      reject(err);
-    });
-
-    req.on("timeout", () => {
-      req.destroy();
-      reject(new Error("request timeout"));
-    });
-
-    req.write(finalBody);
-    req.end();
-  });
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 export const LogLevelValues: Record<string, number> = {

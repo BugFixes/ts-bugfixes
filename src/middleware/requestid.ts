@@ -1,6 +1,5 @@
 import type http from "node:http";
-import { randomBytes } from "node:crypto";
-import os from "node:os";
+import { randomUUID } from "../core/platform.js";
 
 export const REQUEST_ID_HEADER = "x-request-id";
 
@@ -8,10 +7,9 @@ let counter = 0;
 
 function nextRequestId(): string {
   counter++;
-  const hostname = os.hostname();
-  const rand = randomBytes(8).toString("base64url");
+  const uuid = randomUUID();
   const seq = String(counter).padStart(6, "0");
-  return `${hostname}/${rand}-${seq}`;
+  return `${uuid}-${seq}`;
 }
 
 /**

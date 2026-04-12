@@ -1,4 +1,5 @@
 import type http from "node:http";
+import { byteLength } from "../core/platform.js";
 
 /**
  * Wraps an http.ServerResponse to capture status code and bytes written.
@@ -16,8 +17,7 @@ export class WrapResponseWriter {
       encodingOrCallback?: BufferEncoding | ((error: Error | null | undefined) => void),
       callback?: (error: Error | null | undefined) => void,
     ): boolean => {
-      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk));
-      this._bytesWritten += buf.length;
+      this._bytesWritten += computeByteLength(chunk);
       return originalWrite(chunk, encodingOrCallback as any, callback);
     };
 
@@ -29,10 +29,7 @@ export class WrapResponseWriter {
       callback?: () => void,
     ): http.ServerResponse => {
       if (chunk) {
-        const buf = Buffer.isBuffer(chunk)
-          ? chunk
-          : Buffer.from(String(chunk));
-        this._bytesWritten += buf.length;
+        this._bytesWritten += computeByteLength(chunk);
       }
       return originalEnd(chunk, encodingOrCallback as any, callback);
     };
@@ -60,6 +57,17 @@ export class WrapResponseWriter {
   get headersSent(): boolean {
     return this._headersSent;
   }
+}
+
+function computeByteLength(chunk: unknown): number {
+  if (typeof chunk === "string") {
+    return byteLength(chunk);
+  }
+  if (chunk instanceof Uint8Array) {
+    return chunk.length;
+  }
+  // Buffer is a subclass of Uint8Array in Node, so the above handles it
+  return byteLength(String(chunk));
 }
 
 export function wrapResponse(res: http.ServerResponse): WrapResponseWriter {

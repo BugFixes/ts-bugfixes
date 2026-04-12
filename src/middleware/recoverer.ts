@@ -11,6 +11,7 @@ import {
   makeRequest,
 } from "../config.js";
 import { getRequestId } from "./requestid.js";
+import { writeOutput } from "../core/platform.js";
 
 export interface BugFixesSend {
   file: string;
@@ -29,12 +30,8 @@ export interface BugFixesSend {
 /**
  * Panic/error recovery middleware.
  *
- * Wraps the handler in a try/catch (via domain or async), catches
- * uncaught errors, logs them with stack traces, and optionally
- * sends them to the Bugfixes API.
- *
- * Note: Node.js doesn't have Go-style panics, so this catches thrown
- * errors and unhandled promise rejections within the request scope.
+ * Wraps the handler in a try/catch, catches thrown errors, logs them
+ * with stack traces, and optionally sends them to the Bugfixes API.
  */
 export function recovererMiddleware(
   req: http.IncomingMessage,
@@ -46,6 +43,27 @@ export function recovererMiddleware(
   } catch (err: unknown) {
     handleError(err, req, res);
   }
+}
+
+/**
+ * Create a recoverer middleware with custom API credentials.
+ * Use this when you need per-middleware credential overrides.
+ */
+export function createRecovererMiddleware(
+  agentKey?: string,
+  agentSecret?: string,
+): (
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  next: () => void,
+) => void {
+  return (req, res, next) => {
+    try {
+      next();
+    } catch (err: unknown) {
+      handleError(err, req, res, agentKey, agentSecret);
+    }
+  };
 }
 
 /**
@@ -69,6 +87,8 @@ function handleError(
   err: unknown,
   req: http.IncomingMessage,
   res: http.ServerResponse,
+  agentKey?: string,
+  agentSecret?: string,
 ): void {
   const message =
     err instanceof Error ? err.message : String(err);
@@ -79,14 +99,17 @@ function handleError(
   const pretty = formatPrettyStack(trace.frames, message);
 
   // Log to stderr
-  process.stderr.write(pretty + "\n");
+  writeOutput("stderr", pretty + "\n");
 
   // Attempt to send to Bugfixes API
   const cfg = getDefaultConfig();
   const reqId = getRequestId(req) || "-";
   const topFrame = trace.topFrame;
 
-  if (!cfg.localOnly && cfg.agentKey && cfg.agentSecret) {
+  const key = agentKey || cfg.agentKey;
+  const secret = agentSecret || cfg.agentSecret;
+
+  if (!cfg.localOnly && key && secret) {
     const data: BugFixesSend = {
       file: topFrame?.file || "unknown",
       line: topFrame?.line || 0,
@@ -101,9 +124,10 @@ function handleError(
       timestamp: new Date().toISOString(),
     };
 
-    makeRequest(cfg, bugEndpoint(cfg), JSON.stringify(data)).catch(
+    const sendCfg: Config = { ...cfg, agentKey: key, agentSecret: secret };
+    makeRequest(sendCfg, bugEndpoint(sendCfg), JSON.stringify(data)).catch(
       (sendErr) => {
-        process.stderr.write(
+        writeOutput("stderr",
           `bugfixes: failed to send bug report: ${sendErr.message}\n`,
         );
       },

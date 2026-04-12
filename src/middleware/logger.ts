@@ -11,7 +11,7 @@ import {
 } from "../internal/term.js";
 import { wrapResponse } from "./wrapwriter.js";
 import { getRequestId } from "./requestid.js";
-import type { Middleware } from "./requestid.js";
+import { writeOutput, now } from "../core/platform.js";
 
 function statusColor(status: number): string {
   if (status < 200) return ColorBrightBlue;
@@ -47,15 +47,14 @@ export function loggerMiddleware(
   res: http.ServerResponse,
   next: () => void,
 ): void {
-  const start = process.hrtime.bigint();
+  const start = now();
   const wrapper = wrapResponse(res);
 
   const onFinish = () => {
     res.removeListener("finish", onFinish);
     res.removeListener("close", onFinish);
 
-    const durationNs = process.hrtime.bigint() - start;
-    const durationMs = Number(durationNs / 1_000_000n);
+    const durationMs = Math.round(now() - start);
 
     const method = req.method || "GET";
     const url = req.url || "/";
@@ -69,7 +68,8 @@ export function loggerMiddleware(
     const bytesStr = colorize(ColorBrightWhite, `${bytes}B`);
     const idStr = colorize(ColorBrightCyan, reqId);
 
-    process.stdout.write(
+    writeOutput(
+      "stdout",
       `${methodStr} ${url} ${statusStr} ${durationStr} ${bytesStr} ${idStr}\n`,
     );
   };
