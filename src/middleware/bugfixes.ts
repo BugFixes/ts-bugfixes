@@ -5,7 +5,7 @@ import {
   bugEndpoint,
   makeRequest,
 } from "../config.js";
-import { captureStack, parseStack, formatPrettyStack } from "../logs/pretty.js";
+import { buildUsefulTrace, formatPrettyStack } from "../logs/pretty.js";
 import { getRequestId } from "./requestid.js";
 import type { BugFixesSend } from "./recoverer.js";
 
@@ -38,9 +38,9 @@ export function createBugfixesMiddleware(
           ? err.stack || ""
           : new Error(String(err)).stack || "";
 
-      const frames = parseStack(stack);
-      const pretty = formatPrettyStack(frames, message);
-      const topFrame = frames[0];
+      const trace = buildUsefulTrace(stack);
+      const pretty = formatPrettyStack(trace.frames, message);
+      const topFrame = trace.topFrame;
       const reqId = getRequestId(req) || "-";
 
       process.stderr.write(pretty + "\n");
@@ -49,9 +49,13 @@ export function createBugfixesMiddleware(
         const data: BugFixesSend = {
           file: topFrame?.file || "unknown",
           line: topFrame?.line || 0,
+          column: topFrame?.column || 0,
           raw: stack,
           bug: pretty,
           message,
+          errorName: trace.errorName,
+          fingerprint: trace.fingerprint,
+          trace,
           requestId: reqId,
           timestamp: new Date().toISOString(),
         };

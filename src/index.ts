@@ -42,6 +42,7 @@ export {
   formatPrettyStack,
   captureStack,
   findCaller,
+  buildUsefulTrace,
   ERROR,
   WARN,
   INFO,
@@ -50,7 +51,12 @@ export {
   FATAL,
 } from "./logs/index.js";
 
-export type { BugFixesData, ParsedStackFrame, PrettyStackResult } from "./logs/index.js";
+export type {
+  BugFixesData,
+  ParsedStackFrame,
+  PrettyStackResult,
+  UsefulTrace,
+} from "./logs/index.js";
 
 // Middleware
 export {

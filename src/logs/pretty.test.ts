@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { parseStack, findCaller, captureStack } from "./pretty.js";
+import {
+  parseStack,
+  findCaller,
+  captureStack,
+  buildUsefulTrace,
+} from "./pretty.js";
 
 describe("Pretty Stack", () => {
   it("should parse V8 stack trace", () => {
@@ -35,5 +40,19 @@ describe("Pretty Stack", () => {
     const caller = findCaller(["nonexistent-pattern"]);
     expect(caller.file).toBeTruthy();
     expect(caller.line).toBeGreaterThan(0);
+  });
+
+  it("should prefer app frames over compiled artifacts", () => {
+    const stack = `TypeError: fetch failed
+    at fetchProjects (/Volumes/Dockcase/Projects/flags/dashboard/.next/dev/server/chunks/ssr/node_modules__pnpm_59a7dda5._.js:3430:12)
+    at loadDashboardHome (/Volumes/Dockcase/Projects/flags/dashboard/src/app/page.tsx:87:19)
+    at DashboardPage (/Volumes/Dockcase/Projects/flags/dashboard/src/app/page.tsx:120:5)`;
+
+    const trace = buildUsefulTrace(stack);
+
+    expect(trace.topFrame?.file).toBe("/Volumes/Dockcase/Projects/flags/dashboard/src/app/page.tsx");
+    expect(trace.topFrame?.line).toBe(87);
+    expect(trace.fingerprint).toContain("src/app/page.tsx:87");
+    expect(trace.fingerprint).not.toContain(".next/dev/server/chunks");
   });
 });
