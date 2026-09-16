@@ -13,9 +13,13 @@ import {
 import { getRequestId } from "./requestid.js";
 import { writeOutput } from "../core/platform.js";
 
+// Wire shape accepted by celeste-api POST /v1/bug (snake_case, line as string).
 export interface BugFixesSend {
   file: string;
-  line: number;
+  line: string;
+  line_number: number;
+  bug_line: string;
+  level: string;
   column: number;
   raw: string;
   bug: string;
@@ -112,7 +116,10 @@ function handleError(
   if (!cfg.localOnly && key && secret) {
     const data: BugFixesSend = {
       file: topFrame?.file || "unknown",
-      line: topFrame?.line || 0,
+      line: String(topFrame?.line || 0),
+      line_number: topFrame?.line || 0,
+      bug_line: `${topFrame?.file || "unknown"}:${topFrame?.line || 0}`,
+      level: "panic",
       column: topFrame?.column || 0,
       raw: stack,
       bug: pretty,
