@@ -36,22 +36,20 @@ export const PANIC = "panic";
 export const FATAL = "fatal";
 export const UNKNOWN = "unknown";
 
+// Wire shape accepted by celeste-api POST /v1/log (snake_case, line as string).
 export interface BugFixesData {
-  formattedLog: string;
+  log: string;
   level: string;
   file: string;
-  line: number;
-  column: number;
-  logFmt: string;
+  line: string;
+  line_number: number;
+  log_fmt: string;
   stack: string;
   message: string;
   errorName: string;
   fingerprint: string;
   trace: UsefulTrace;
   error?: string;
-  localOnly: boolean;
-  agentId: string;
-  secret: string;
   timestamp: string;
 }
 
