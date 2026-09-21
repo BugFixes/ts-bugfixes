@@ -9,6 +9,7 @@ import {
   getDefaultConfig,
   bugEndpoint,
   makeRequest,
+  reportMetadata,
 } from "../config.js";
 import { getRequestId } from "./requestid.js";
 import { writeOutput } from "../core/platform.js";
@@ -29,6 +30,9 @@ export interface BugFixesSend {
   trace: UsefulTrace;
   requestId: string;
   timestamp: string;
+  commit_sha?: string;
+  release?: string;
+  environment?: string;
 }
 
 /**
@@ -129,6 +133,7 @@ function handleError(
       trace,
       requestId: reqId,
       timestamp: new Date().toISOString(),
+      ...reportMetadata(cfg),
     };
 
     const sendCfg: Config = { ...cfg, agentKey: key, agentSecret: secret };

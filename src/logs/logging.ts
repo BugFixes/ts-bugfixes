@@ -6,6 +6,7 @@ import {
   makeRequest,
   convertLevelFromString,
   LogLevelValues,
+  reportMetadata,
 } from "../config.js";
 import {
   colorize,
@@ -38,12 +39,12 @@ export const UNKNOWN = "unknown";
 
 // Wire shape accepted by celeste-api POST /v1/log (snake_case, line as string).
 export interface BugFixesData {
-  log: string;
+  formattedLog: string;
   level: string;
   file: string;
-  line: string;
-  line_number: number;
-  log_fmt: string;
+  line: number;
+  column: number;
+  logFmt: string;
   stack: string;
   message: string;
   errorName: string;
@@ -51,6 +52,12 @@ export interface BugFixesData {
   trace: UsefulTrace;
   error?: string;
   timestamp: string;
+  localOnly: boolean;
+  agentId: string;
+  secret: string;
+  commit_sha?: string;
+  release?: string;
+  environment?: string;
 }
 
 const LEVEL_COLORS: Record<string, string> = {
@@ -249,6 +256,7 @@ export class BugFixes {
       agentId: cfg.agentKey,
       secret: cfg.agentSecret,
       timestamp: this.timestamp,
+      ...reportMetadata(cfg),
     };
 
     const body = JSON.stringify(data);

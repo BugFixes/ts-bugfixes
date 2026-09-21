@@ -5,6 +5,9 @@ export interface Config {
   agentKey: string;
   agentSecret: string;
   agentId: string;
+  commitSha: string;
+  release: string;
+  environment: string;
   logLevel: string;
   localOnly: boolean;
   iconSkip: boolean;
@@ -18,6 +21,9 @@ let defaultConfig: Config = {
   agentKey: "",
   agentSecret: "",
   agentId: "",
+  commitSha: "",
+  release: "",
+  environment: "",
   logLevel: "",
   localOnly: false,
   iconSkip: false,
@@ -33,6 +39,9 @@ export function loadConfigFromEnv(): Config {
     agentKey: getEnv("BUGFIXES_AGENT_KEY") || getEnv("BUGFIXES_KEY") || "",
     agentSecret: getEnv("BUGFIXES_AGENT_SECRET") || getEnv("BUGFIXES_SECRET") || "",
     agentId: getEnv("BUGFIXES_AGENT_ID") || getEnv("BUGFIXES_ID") || "",
+    commitSha: getEnv("BUGFIXES_COMMIT_SHA") || "",
+    release: getEnv("BUGFIXES_RELEASE") || "",
+    environment: getEnv("BUGFIXES_ENVIRONMENT") || "",
     logLevel: getEnv("BUGFIXES_LOG_LEVEL") || "",
     localOnly: localOnly === "true" || localOnly === "1",
     iconSkip: iconSkip === "true" || iconSkip === "1",
@@ -54,6 +63,9 @@ export function resetDefaultConfig(): void {
     agentKey: "",
     agentSecret: "",
     agentId: "",
+    commitSha: "",
+    release: "",
+    environment: "",
     logLevel: "",
     localOnly: false,
     iconSkip: false,
@@ -67,6 +79,9 @@ export function mergeConfig(base: Config, override: Partial<Config>): Config {
     agentKey: override.agentKey || base.agentKey,
     agentSecret: override.agentSecret || base.agentSecret,
     agentId: override.agentId || base.agentId,
+    commitSha: override.commitSha || base.commitSha,
+    release: override.release || base.release,
+    environment: override.environment || base.environment,
     logLevel: override.logLevel || base.logLevel,
     // localOnly can only be upgraded to true, never downgraded
     localOnly: base.localOnly || (override.localOnly ?? false),
@@ -81,6 +96,18 @@ export function logEndpoint(cfg: Config): string {
 
 export function bugEndpoint(cfg: Config): string {
   return `${cfg.server}/bug`;
+}
+
+export function reportMetadata(cfg: Config): {
+  commit_sha?: string;
+  release?: string;
+  environment?: string;
+} {
+  return {
+    ...(cfg.commitSha ? { commit_sha: cfg.commitSha } : {}),
+    ...(cfg.release ? { release: cfg.release } : {}),
+    ...(cfg.environment ? { environment: cfg.environment } : {}),
+  };
 }
 
 /**

@@ -8,6 +8,7 @@ import {
   logEndpoint,
   bugEndpoint,
   convertLevelFromString,
+  reportMetadata,
 } from "./config.js";
 
 describe("Config", () => {
@@ -22,6 +23,9 @@ describe("Config", () => {
     delete process.env.BUGFIXES_SERVER;
     delete process.env.BUGFIXES_LOCAL_ONLY;
     delete process.env.BUGFIXES_LOG_LEVEL;
+    delete process.env.BUGFIXES_COMMIT_SHA;
+    delete process.env.BUGFIXES_RELEASE;
+    delete process.env.BUGFIXES_ENVIRONMENT;
   });
 
   it("should load config from environment variables", () => {
@@ -30,6 +34,9 @@ describe("Config", () => {
     process.env.BUGFIXES_SERVER = "https://custom.server/v1";
     process.env.BUGFIXES_LOCAL_ONLY = "true";
     process.env.BUGFIXES_LOG_LEVEL = "warn";
+    process.env.BUGFIXES_COMMIT_SHA = "a".repeat(40);
+    process.env.BUGFIXES_RELEASE = "checkout@2026.09.21";
+    process.env.BUGFIXES_ENVIRONMENT = "development";
 
     const cfg = loadConfigFromEnv();
     expect(cfg.agentKey).toBe("test-key");
@@ -37,6 +44,9 @@ describe("Config", () => {
     expect(cfg.server).toBe("https://custom.server/v1");
     expect(cfg.localOnly).toBe(true);
     expect(cfg.logLevel).toBe("warn");
+    expect(cfg.commitSha).toBe("a".repeat(40));
+    expect(cfg.release).toBe("checkout@2026.09.21");
+    expect(cfg.environment).toBe("development");
   });
 
   it("should use defaults when env vars not set", () => {
@@ -55,9 +65,17 @@ describe("Config", () => {
 
   it("should merge configs correctly", () => {
     const base = getDefaultConfig();
-    const merged = mergeConfig(base, { agentKey: "override-key" });
+    const merged = mergeConfig(base, {
+      agentKey: "override-key",
+      commitSha: "b".repeat(40),
+      release: "api@2.4.0",
+      environment: "staging",
+    });
     expect(merged.agentKey).toBe("override-key");
     expect(merged.server).toBe("https://api.bugfix.es/v1");
+    expect(merged.commitSha).toBe("b".repeat(40));
+    expect(merged.release).toBe("api@2.4.0");
+    expect(merged.environment).toBe("staging");
   });
 
   it("should not downgrade localOnly from true to false", () => {
@@ -70,6 +88,20 @@ describe("Config", () => {
     const cfg = getDefaultConfig();
     expect(logEndpoint(cfg)).toBe("https://api.bugfix.es/v1/log");
     expect(bugEndpoint(cfg)).toBe("https://api.bugfix.es/v1/bug");
+  });
+
+  it("should carry only explicitly configured deployment metadata", () => {
+    const cfg = mergeConfig(getDefaultConfig(), {
+      commitSha: "c".repeat(40),
+      release: "web@3.1.0",
+      environment: "development",
+    });
+    expect(reportMetadata(cfg)).toEqual({
+      commit_sha: "c".repeat(40),
+      release: "web@3.1.0",
+      environment: "development",
+    });
+    expect(reportMetadata(getDefaultConfig())).toEqual({});
   });
 
   it("should convert log levels from string", () => {
