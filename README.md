@@ -32,6 +32,9 @@ BUGFIXES_SERVER=https://api.bugfix.es/v1
 BUGFIXES_LOG_LEVEL=warn
 BUGFIXES_LOCAL_ONLY=false
 BUGFIXES_ICON_SKIP=false
+BUGFIXES_COMMIT_SHA=full-git-object-id
+BUGFIXES_RELEASE=checkout-api@2.4.0
+BUGFIXES_ENVIRONMENT=development
 ```
 
 Legacy aliases `BUGFIXES_KEY`, `BUGFIXES_SECRET`, and `BUGFIXES_ID` are also accepted.
@@ -53,8 +56,15 @@ setDefaultConfig({
   agentKey: "your-key",
   agentSecret: "your-secret",
   localOnly: false,
+  commitSha: "full-git-object-id",
+  release: "checkout-api@2.4.0",
+  environment: "development",
 });
 ```
+
+Commit, release, and environment are optional event metadata. The SDK reads only the
+explicit `BUGFIXES_*` values above; it does not guess from `NODE_ENV`, Git, or a CI
+provider. Set them from deployment configuration when you want them reported.
 
 Remote reporting only happens when `localOnly` is false and both `agentKey` and `agentSecret` are set.
 
