@@ -14,7 +14,7 @@ import {
 import { getRequestId } from "./requestid.js";
 import { writeOutput } from "../core/platform.js";
 
-// Wire shape accepted by celeste-api POST /v1/bug (snake_case, line as string).
+// Wire shape accepted by orchestrator POST /v1/bug (snake_case, line as string).
 export interface BugFixesSend {
   file: string;
   line: string;
