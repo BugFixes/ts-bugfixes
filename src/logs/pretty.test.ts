@@ -26,6 +26,22 @@ describe("Pretty Stack", () => {
     expect(frames[2].line).toBe(20);
   });
 
+  it("should parse Firefox and Safari stack traces", () => {
+    const stack = `render@https://dashboard.example/_next/static/chunks/app.js:1:2345
+@https://dashboard.example/_next/static/chunks/main.js:7:8
+onClick@https://dashboard.example/src/app/page.tsx:87:19`;
+
+    const frames = parseStack(stack);
+    expect(frames).toHaveLength(3);
+    expect(frames[0]).toMatchObject({ func: "render", file: "https://dashboard.example/_next/static/chunks/app.js", line: 1, column: 2345 });
+    expect(frames[1].func).toBe("<anonymous>");
+
+    const trace = buildUsefulTrace(stack);
+    expect(trace.errorName).toBe("Error");
+    expect(trace.topFrame?.file).toBe("https://dashboard.example/src/app/page.tsx");
+    expect(trace.topFrame?.line).toBe(87);
+  });
+
   it("should handle empty stack", () => {
     const frames = parseStack("");
     expect(frames).toHaveLength(0);
