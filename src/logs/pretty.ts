@@ -44,6 +44,7 @@ const DEFAULT_TRACE_SKIP_PATTERNS = [
 ];
 const COMPILED_ARTIFACT_PATTERNS = [
   "/.next/",
+  "/_next/static/", // browser bundles served by Next.js
   "/dist/",
   "/build/",
   "/node_modules/",
@@ -58,15 +59,29 @@ export function parseStack(stack: string): ParsedStackFrame[] {
 
   for (const line of lines) {
     const trimmed = line.trim();
-    if (!trimmed.startsWith("at ")) continue;
-
-    const frame = parseStackLine(trimmed);
+    const frame = trimmed.startsWith("at ") ? parseStackLine(trimmed) : parseGeckoStackLine(trimmed);
     if (frame) {
       frames.push(frame);
     }
   }
 
   return frames;
+}
+
+/**
+ * Parse a Firefox/Safari (SpiderMonkey/JavaScriptCore) frame: "func@file:line:col"
+ * or "@file:line:col" for anonymous frames. Lines that are not frames return null.
+ */
+function parseGeckoStackLine(line: string): ParsedStackFrame | null {
+  const match = line.match(/^([^@\s]*)@(.+):(\d+):(\d+)$/);
+  if (!match) return null;
+  return {
+    func: match[1] || "<anonymous>",
+    file: match[2],
+    line: parseInt(match[3], 10),
+    column: parseInt(match[4], 10),
+    raw: line,
+  };
 }
 
 export function buildUsefulTrace(
@@ -241,6 +256,8 @@ export function findCaller(
 
 function extractErrorName(stack: string): string {
   const firstLine = stack.split("\n")[0]?.trim() || "";
+  // Firefox and Safari stacks start with the first frame, not "Name: message".
+  if (firstLine.startsWith("at ") || parseGeckoStackLine(firstLine)) return "Error";
   const match = firstLine.match(/^([^:]+)(?::|$)/);
   return match?.[1] || "Error";
 }
