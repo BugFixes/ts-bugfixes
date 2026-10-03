@@ -25,7 +25,7 @@ import {
 } from "./pretty.js";
 import type { UsefulTrace } from "./pretty.js";
 import { withIcon } from "../icons.js";
-import { writeOutput } from "../core/platform.js";
+import { detectReportRuntime, writeOutput } from "../core/platform.js";
 
 export const LOG = "log";
 export const DEBUG = "debug";
@@ -39,6 +39,7 @@ export const UNKNOWN = "unknown";
 
 // Wire shape accepted by celeste-api POST /v1/log (snake_case, line as string).
 export interface BugFixesData {
+  runtime: "node" | "browser";
   formattedLog: string;
   level: string;
   file: string;
@@ -241,6 +242,7 @@ export class BugFixes {
 
   private async sendToApi(cfg: Config): Promise<void> {
     const data: BugFixesData = {
+      runtime: detectReportRuntime(),
       formattedLog: this.formatOutput(),
       level: this.level,
       file: this.file,

@@ -12,10 +12,11 @@ import {
   reportMetadata,
 } from "../config.js";
 import { getRequestId } from "./requestid.js";
-import { writeOutput } from "../core/platform.js";
+import { detectReportRuntime, writeOutput } from "../core/platform.js";
 
 // Wire shape accepted by orchestrator POST /v1/bug (snake_case, line as string).
 export interface BugFixesSend {
+  runtime: "node" | "browser";
   file: string;
   line: string;
   line_number: number;
@@ -119,6 +120,7 @@ function handleError(
 
   if (!cfg.localOnly && key && secret) {
     const data: BugFixesSend = {
+      runtime: detectReportRuntime(),
       file: topFrame?.file || "unknown",
       line: String(topFrame?.line || 0),
       line_number: topFrame?.line || 0,

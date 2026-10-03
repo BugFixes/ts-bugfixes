@@ -13,6 +13,15 @@ export const isBrowser =
   typeof globalThis !== "undefined" &&
   typeof (globalThis as any).window !== "undefined";
 
+export type ReportRuntime = "node" | "browser";
+
+export function detectReportRuntime(): ReportRuntime {
+  return typeof globalThis !== "undefined" &&
+    typeof (globalThis as any).window !== "undefined"
+    ? "browser"
+    : "node";
+}
+
 /**
  * Write to stdout or stderr, falling back to console methods in non-Node environments.
  */
