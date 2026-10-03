@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   isNode,
   isBrowser,
+  detectReportRuntime,
   writeOutput,
   isTTY,
   getEnv,
@@ -13,6 +14,18 @@ import {
 } from "./platform.js";
 
 describe("Platform detection", () => {
+  it("detects the runtime when a report is sent", () => {
+    const previous = Object.getOwnPropertyDescriptor(globalThis, "window");
+    try {
+      Reflect.deleteProperty(globalThis, "window");
+      expect(detectReportRuntime()).toBe("node");
+      Object.defineProperty(globalThis, "window", { configurable: true, value: {} });
+      expect(detectReportRuntime()).toBe("browser");
+    } finally {
+      if (previous) Object.defineProperty(globalThis, "window", previous);
+      else Reflect.deleteProperty(globalThis, "window");
+    }
+  });
   it("isNode should be true in Node.js", () => {
     expect(isNode).toBe(true);
   });
