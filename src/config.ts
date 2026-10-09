@@ -90,6 +90,13 @@ export function mergeConfig(base: Config, override: Partial<Config>): Config {
   };
 }
 
+// isBrowserKey reports a single public bfb_… key, which needs no secret.
+export const isBrowserKey = (key: string): boolean => key.startsWith("bfb_");
+
+// hasCredentials reports whether reports can be sent: a browser key, or a key and secret.
+export const hasCredentials = (key: string, secret: string): boolean =>
+  isBrowserKey(key) || (key !== "" && secret !== "");
+
 export function logEndpoint(cfg: Config): string {
   return `${cfg.server}/log`;
 }
@@ -124,6 +131,12 @@ export async function makeRequest(
   body: string,
   logLevel?: number,
 ): Promise<void> {
+  // A browser key (bfb_…) is a single public key sent as a Bearer token; the
+  // server only accepts it from the origins it was issued for.
+  if (isBrowserKey(cfg.agentKey)) {
+    return send(cfg, url, body, { "Content-Type": "application/json", Authorization: `Bearer ${cfg.agentKey}` });
+  }
+
   // JWT-sign the payload if we have a secret
   let finalBody: string;
   if (cfg.agentSecret) {
@@ -147,6 +160,10 @@ export async function makeRequest(
     headers["X-API-ID"] = cfg.agentId;
   }
 
+  return send(cfg, url, finalBody, headers);
+}
+
+async function send(cfg: Config, url: string, body: string, headers: Record<string, string>): Promise<void> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), cfg.httpTimeout);
 
@@ -154,7 +171,7 @@ export async function makeRequest(
     const response = await fetch(url, {
       method: "POST",
       headers,
-      body: finalBody,
+      body,
       signal: controller.signal,
     });
     // Drain response body

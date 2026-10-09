@@ -7,6 +7,7 @@ import {
   convertLevelFromString,
   LogLevelValues,
   reportMetadata,
+  hasCredentials,
 } from "../config.js";
 import {
   colorize,
@@ -173,7 +174,7 @@ export class BugFixes {
 
     // If not local-only and we have credentials, send to API
     const isLocal = this.localOnly || cfg.localOnly;
-    if (!isLocal && cfg.agentKey && cfg.agentSecret) {
+    if (!isLocal && hasCredentials(cfg.agentKey, cfg.agentSecret)) {
       this.sendToApi(cfg).catch((err) => {
         writeOutput(
           "stderr",

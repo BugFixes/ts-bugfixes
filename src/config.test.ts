@@ -114,3 +114,13 @@ describe("Config", () => {
     expect(convertLevelFromString("unknown")).toBe(9);
   });
 });
+
+describe("hasCredentials", () => {
+  it("accepts a browser key alone, otherwise needs key and secret", async () => {
+    const { hasCredentials } = await import("./config.js");
+    expect(hasCredentials("bfb_abc", "")).toBe(true);
+    expect(hasCredentials("key", "secret")).toBe(true);
+    expect(hasCredentials("key", "")).toBe(false);
+    expect(hasCredentials("", "secret")).toBe(false);
+  });
+});

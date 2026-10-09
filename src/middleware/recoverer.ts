@@ -10,6 +10,7 @@ import {
   bugEndpoint,
   makeRequest,
   reportMetadata,
+  hasCredentials,
 } from "../config.js";
 import { getRequestId } from "./requestid.js";
 import { detectReportRuntime, writeOutput } from "../core/platform.js";
@@ -118,7 +119,7 @@ function handleError(
   const key = agentKey || cfg.agentKey;
   const secret = agentSecret || cfg.agentSecret;
 
-  if (!cfg.localOnly && key && secret) {
+  if (!cfg.localOnly && hasCredentials(key, secret)) {
     const data: BugFixesSend = {
       runtime: detectReportRuntime(),
       file: topFrame?.file || "unknown",

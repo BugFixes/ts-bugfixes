@@ -43,6 +43,15 @@ describe("makeRequest (fetch-based)", () => {
     expect(opts.headers["X-API-ID"]).toBe("my-id");
   });
 
+  it("sends a browser key as a Bearer token with only CORS-allowed headers and an unsigned body", async () => {
+    const cfg = { ...getDefaultConfig(), agentKey: "bfb_abc", agentSecret: "ignored", agentId: "my-id" };
+    await makeRequest(cfg, "https://api.bugfix.es/v1/bug", '{"msg":"test"}');
+
+    const [, opts] = fetchSpy.mock.calls[0];
+    expect(opts.headers).toEqual({ "Content-Type": "application/json", Authorization: "Bearer bfb_abc" });
+    expect(opts.body).toBe('{"msg":"test"}');
+  });
+
   it("should not include X-API-ID when agentId is empty", async () => {
     const cfg = { ...getDefaultConfig(), agentKey: "key", agentSecret: "" };
     await makeRequest(cfg, "https://api.bugfix.es/v1/log", '{"msg":"test"}');

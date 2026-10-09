@@ -66,7 +66,23 @@ Commit, release, and environment are optional event metadata. The SDK reads only
 explicit `BUGFIXES_*` values above; it does not guess from `NODE_ENV`, Git, or a CI
 provider. Set them from deployment configuration when you want them reported.
 
-Remote reporting only happens when `localOnly` is false and both `agentKey` and `agentSecret` are set.
+Remote reporting only happens when `localOnly` is false and either `agentKey` is a browser
+key or both `agentKey` and `agentSecret` are set.
+
+### In the browser
+
+Never ship an agent secret to a browser. Create a browser key for the agent on the
+BugFixes Agents page instead, listing the sites it may report from, and use it on its own:
+
+```ts
+import { setDefaultConfig } from "bugfixes";
+
+setDefaultConfig({ agentKey: "bfb_…" });
+```
+
+A `bfb_` key is sent as `Authorization: Bearer`, with no secret and an unsigned body.
+The key is visible to anyone reading your bundle, which is why BugFixes only accepts it
+from the origins it was issued for.
 
 ## Logging
 
