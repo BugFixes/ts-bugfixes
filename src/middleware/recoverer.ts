@@ -35,6 +35,7 @@ export interface BugFixesSend {
   commit_sha?: string;
   release?: string;
   environment?: string;
+  service?: string;
 }
 
 /**

@@ -8,6 +8,7 @@ export interface Config {
   commitSha: string;
   release: string;
   environment: string;
+  service: string;
   logLevel: string;
   localOnly: boolean;
   iconSkip: boolean;
@@ -24,6 +25,7 @@ let defaultConfig: Config = {
   commitSha: "",
   release: "",
   environment: "",
+  service: "",
   logLevel: "",
   localOnly: false,
   iconSkip: false,
@@ -42,6 +44,7 @@ export function loadConfigFromEnv(): Config {
     commitSha: getEnv("BUGFIXES_COMMIT_SHA") || "",
     release: getEnv("BUGFIXES_RELEASE") || "",
     environment: getEnv("BUGFIXES_ENVIRONMENT") || "",
+    service: getEnv("BUGFIXES_SERVICE") || "",
     logLevel: getEnv("BUGFIXES_LOG_LEVEL") || "",
     localOnly: localOnly === "true" || localOnly === "1",
     iconSkip: iconSkip === "true" || iconSkip === "1",
@@ -66,6 +69,7 @@ export function resetDefaultConfig(): void {
     commitSha: "",
     release: "",
     environment: "",
+    service: "",
     logLevel: "",
     localOnly: false,
     iconSkip: false,
@@ -82,6 +86,7 @@ export function mergeConfig(base: Config, override: Partial<Config>): Config {
     commitSha: override.commitSha || base.commitSha,
     release: override.release || base.release,
     environment: override.environment || base.environment,
+    service: override.service || base.service,
     logLevel: override.logLevel || base.logLevel,
     // localOnly can only be upgraded to true, never downgraded
     localOnly: base.localOnly || (override.localOnly ?? false),
@@ -109,11 +114,13 @@ export function reportMetadata(cfg: Config): {
   commit_sha?: string;
   release?: string;
   environment?: string;
+  service?: string;
 } {
   return {
     ...(cfg.commitSha ? { commit_sha: cfg.commitSha } : {}),
     ...(cfg.release ? { release: cfg.release } : {}),
     ...(cfg.environment ? { environment: cfg.environment } : {}),
+    ...(cfg.service ? { service: cfg.service } : {}),
   };
 }
 

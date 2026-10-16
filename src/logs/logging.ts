@@ -60,6 +60,7 @@ export interface BugFixesData {
   commit_sha?: string;
   release?: string;
   environment?: string;
+  service?: string;
 }
 
 const LEVEL_COLORS: Record<string, string> = {

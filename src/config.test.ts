@@ -26,6 +26,7 @@ describe("Config", () => {
     delete process.env.BUGFIXES_COMMIT_SHA;
     delete process.env.BUGFIXES_RELEASE;
     delete process.env.BUGFIXES_ENVIRONMENT;
+    delete process.env.BUGFIXES_SERVICE;
   });
 
   it("should load config from environment variables", () => {
@@ -37,6 +38,7 @@ describe("Config", () => {
     process.env.BUGFIXES_COMMIT_SHA = "a".repeat(40);
     process.env.BUGFIXES_RELEASE = "checkout@2026.09.21";
     process.env.BUGFIXES_ENVIRONMENT = "development";
+    process.env.BUGFIXES_SERVICE = "checkout";
 
     const cfg = loadConfigFromEnv();
     expect(cfg.agentKey).toBe("test-key");
@@ -47,6 +49,7 @@ describe("Config", () => {
     expect(cfg.commitSha).toBe("a".repeat(40));
     expect(cfg.release).toBe("checkout@2026.09.21");
     expect(cfg.environment).toBe("development");
+    expect(cfg.service).toBe("checkout");
   });
 
   it("should use defaults when env vars not set", () => {
@@ -95,11 +98,13 @@ describe("Config", () => {
       commitSha: "c".repeat(40),
       release: "web@3.1.0",
       environment: "development",
+      service: "storefront",
     });
     expect(reportMetadata(cfg)).toEqual({
       commit_sha: "c".repeat(40),
       release: "web@3.1.0",
       environment: "development",
+      service: "storefront",
     });
     expect(reportMetadata(getDefaultConfig())).toEqual({});
   });
