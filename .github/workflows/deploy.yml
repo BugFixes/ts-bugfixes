@@ -10,6 +10,9 @@ jobs:
   npm:
     runs-on: ubuntu-latest
     environment: production
+    permissions:
+      contents: read
+      id-token: write # npm trusted publishing (OIDC)
     steps:
       - uses: actions/checkout@v4
         with:
@@ -18,13 +21,11 @@ jobs:
       - uses: keloran/version-bump@main
       - uses: actions/setup-node@v4
         with:
-          node-version: "20.x"
+          node-version: "24.x" # npm >= 11.5.1 for trusted publishing
           registry-url: "https://registry.npmjs.org"
       - uses: oven-sh/setup-bun@v2
       - run: bun install
       - name: Build
         run: bun run build
       - name: NPM
-        run: npm publish --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish
